@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+
+		<!-- Always force latest IE rendering engine (even in intranet) & Chrome Frame
+		Remove this if you use the .htaccess -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+		<title>OnceUX HTML 5 POC</title>
+		<meta name="description" content="" />
+
+		<style>
+
+			body{
+			 background:#fff;
+			 color:#333;
+			 font:14px "Helvetica Neue",Arial,Helvetica,Geneva,sans-serif;
+			}
+ 
+		</style>
+
+	</head>
+
+	<body>
+		<div>
+			<header>
+				
+			</header>
+			<nav>
+				
+			</nav>
+
+			<div>
+			<table style="width: 100%">
+				<!--tr>
+					<td valign="top" >
+						<input id="loadOASURL" type="text" style="width:100%;">  
+					</td>
+					<td valign="top">
+						<input id="btn_loadOASURL" type="button" value="Load OnceUX URL" >  
+					</td>
+				</tr-->
+				<tr>
+					<td valign="top" style="width:520px;">
+						<div id="playerWrapper" style="width: 520px; height: 290px">
+							<div id="flashContent"></div>
+							<div id="adOverlay" style="display: none; visibility: hidden"></div>
+						</div>
+					</td>
+					<td align="left" valign="top">
+						Ad specific companion banner:<br/>
+						<div id="bannerContainer"></div>
+					</td>
+				</tr>
+				<tr style="width:100%;">
+					<td valign="top" colspan="2">
+						<div><strong>Time :</strong> <span  id="currentTime">0</span> <span style="width:50px;"></span> <strong>Duration :</strong> <span id="totalTime">0</span></div>
+						<div>
+							<strong>Current OnceUX URL:</strong> <span  id="currentOASURL"></span>
+						</div>
+						<div>
+							<strong>Current Once URL:</strong> <span  id="currentOnceURL"></span>
+						</div>
+						<br/>
+						<table style="width:100%;" cellpadding="4" cellspacing="4">
+							<tr>
+								<td valign="top" >
+									<table style="width:100%;" cellpadding="5" cellspacing="5">
+										<tr>
+											<td valign="top">
+												<strong>Total Preroll Duration:</strong> <span  id="prerollDuration">0</span><br/>
+												<strong>Total Number Preroll Ads:</strong> <span  id="prerollAdTotal">0</span><br/>
+												<strong>Preroll Ads:</strong><br/>
+												<textarea id="preRollAds" style="width: 100%; height: 200px;"></textarea>
+											</td>
+											<td valign="top">
+												<strong>Total Midroll Duration:</strong> <span  id="midrollDuration">0</span><br/>
+												<strong>Total Number Midroll Ads:</strong> <span  id="midrollAdTotal">0</span><br/>
+												<strong>Midroll Ads:</strong><br/>
+												<textarea id="midRollAds" style="width: 100%; height: 200px;"></textarea>
+											</td>
+											<td valign="top">
+												<strong>Total Postroll Duration:</strong> <span  id="postrollDuration">0</span><br/>
+												<strong>Total Number Postroll Ads:</strong> <span  id="postrollAdTotal">0</span><br/>
+												<strong>Postroll Ads:</strong><br/>
+												<textarea id="postRollAds" style="width: 100%; height: 200px;"></textarea>
+											</td>
+										</tr>
+										<tr>
+											<td valign="top" colspan="3">
+												<strong>Player/Tracking Events and Beacons:</strong><br/>
+												<textarea id="eventsBeacons" style="width: 100%; height: 400px"></textarea>
+											</td>
+										</tr>
+									</table>		
+								</td>
+								<td valign="top">
+									<strong>VMAP Response:</strong><br/>
+									<textarea id="vmapResponse" style="width:520px; height: 800px;"></textarea>
+								</td>
+							</tr>
+						</table>
+						
+					</td>
+				</tr>
+				
+			</table>	
+				
+				
+				
+				
+			</div>
+
+			<footer>
+				<p>
+					
+				</p>
+			</footer>
+		</div>
+		<script src="http://code.jquery.com/jquery-1.7.1.min.js" type="text/javascript"></script>
+		<script src="js/jquery-flash.min.js" type="text/javascript"></script>
+		<script src="js/UMOASUtilsManager.js" type="text/javascript"></script>
+		<script src="js/UMOASSDK.js" type="text/javascript"></script>
+		<script src="js/UMOASAdManager.js" type="text/javascript"></script>
+		<script src="js/UMOASAdSlotManager.js" type="text/javascript"></script>
+		<script src="js/UMOASTimeLineManager.js" type="text/javascript"></script>
+		<script src="js/UMOASBeaconManager.js" type="text/javascript"></script>
+		
+		
+		<script type="text/javascript">
+		//Functions
+		var init;
+		var startPlayback;
+		var playerEventHandler;
+		var player;
+		var currentEventList;
+		var manageViewState;
+		var getElementByNodeName;
+		var configurePlayback;
+		var adCheck;
+		var getTotalAdSlotTime;
+		var handleAdOverlay;
+		var adCountDownTimer;
+		var adEndEventHandler;
+		var adStartEventHandler;
+		var OASURLReloadEventHandler;
+		var getMidRollEndTimeByDuration;
+		var getPostRollEndTimeByDuration;
+		var adConfigTimer;
+		var adManagementTimer;
+		var onJavaScriptBridgeCreated;
+		var onCurrentTimeChange;
+	
+		// Handles loading and parsing OAS vmap response into usable JS objects
+		var onceURL = UMOASSDK.contentOnceURL;
+		var adBreakNodes = UMOASSDK.adBreakNodesArray;
+        var adBreakTracking = UMOASSDK.adBreakTracking;
+		var adBreakCompanionBanners = UMOASSDK.adBreakCompanionBanners;
+		
+		// Handles ad configuration for playback experiance
+		var preRollAdManager = UMOASAdManager.preRollAdManager;
+        var midRollAdManager = UMOASAdManager.midRollAdManager;
+		var postRollAdManager = UMOASAdManager.postRollAdManager;
+		var totalPrerollTime = UMOASAdManager.totalPrerollTime;
+        var totalPostrollTime = UMOASAdManager.totalPostrollTime;
+		var totalMidrollTime = UMOASAdManager.totalMidrollTime;
+		
+		//Ad slot manager variables
+		var currentAdID = UMOASAdSlotManager.currentAdID;
+		
+		//Global Vars
+		var adType;
+		var currentAdState = false;
+		var currentPrerollAd;
+		var currentMidrollAd;
+		var currentPostrollAd;
+		var currentMidrollAdDuration;
+		var currentMidRollAdSlot = 0;
+		var currentPostRollAdSlot = 0;
+		var currentPostRollAdSlot = 0;
+		var hasPostrollStarted = false;
+		var hasPrerollStarted = false;
+		var hasMidrollStarted = false;
+		var hasPostrollStarted = false;
+		var count;
+		var counter;
+		var playingAd;
+		var adEventFlag = false;
+		var adBreaks = [];
+		var currentAd = {};
+		var currentTime;
+		var assetDuration;
+		var currentObjectsList;
+		var prerollTimeFlag;
+		var midrollTimeFlag;
+		var midRollStartTime;
+		var formattedMidRollStartTime;
+		var formattedMidRollEndTime;
+		var formattedPostRollStartTime;
+		var totalPrerollads;
+		var totalMidrollads;
+		var totalPostrollads;
+		var currentRawTime;
+		var bridgeCreated = false; 
+		var gotInitialTime = false;
+		var flashPlayerId;
+		var player;
+		var lastTime = 0;
+		var initialPlayheadTime = 0;
+		var rawAssetDuration = 0;
+		
+			/**
+			 * Setup JS bridge for comunication with Flash Player
+			 * 
+			 * @playerId : we set this id in attrs variable here;
+			 * @event : event name;
+			 * @obj : data of that event.
+			 * 
+			 */
+			function onJSBridge(playerId, event, obj) {
+				
+				switch(event) {
+			        case "onJavaScriptBridgeCreated":
+			            // reference to player
+			            player = document.getElementById(playerId);
+			        break;
+			        case "loadstart":
+			        	var loadEvent = "Load Start Event"; 
+						UMOASUtilsManager.writeToEventConsole(loadEvent + event + '\n' + obj);
+			        break;
+			        case "play":
+			        	var playEvent = "Play Start Event"; 
+						UMOASUtilsManager.writeToEventConsole(playEvent + event + '\n' + 'Ended: ' + obj.ended + '\n' + 'Paused: ' + obj.paused);
+			        break;
+			        case "pause":
+			        	var pauseEvent = "Play Paused Event"; 
+						UMOASUtilsManager.writeToEventConsole(pauseEvent  + event + '\n' + 'Paused:' + obj.paused);
+			        break;
+			        case "loadedmetadata":
+			        	var loadMetadataEvent = "Load Metadata Event"; 
+						UMOASUtilsManager.writeToEventConsole(loadMetadataEvent  + event + '\n' + 'Ready State: '  + obj.readyState);
+			        break;
+			        case "seeking":
+			        	var seekingEvent = "Seeking Event"; 
+						UMOASUtilsManager.writeToEventConsole(seekingEvent  + event + '\n' + 'Seeking: ' + obj.seeking);
+			        break;
+			        case "seeked":
+			        	
+			        break;
+			        case "volumechange":
+			        	var volumeChangedEvent = "Volume Changed Event"; 
+						UMOASUtilsManager.writeToEventConsole(volumeChangedEvent + event + '\n' + 'Muted: '  + obj.muted + '\n' + 'Volume Level: ' + obj.volume);
+			        break;
+			        case "durationchange":
+			        	
+			        	var durationChangedEvent = "Duration Changed Event"; 
+						UMOASUtilsManager.writeToEventConsole(durationChangedEvent  + event + '\n' + obj.duration);
+			        	
+			        	var assetDuration = UMOASUtilsManager.formatTime(obj.duration);
+			        	$('#totalTime').html(assetDuration);  
+			        	
+			        	UMOASTimeLineManager.CreateTimelineManager(totalPrerollTime, totalPostrollTime, totalMidrollTime, preRollAdManager, midRollAdManager, postRollAdManager, assetDuration);
+			        break;
+			        case "timeupdate":
+			        	
+			        		currentRawTime = obj.currentTime;
+							
+                    		//basic ad configurations
+							var readableCurrentTime = UMOASUtilsManager.formatTime(currentRawTime);
+							assetDuration = $('#totalTime').text(); 
+							rawAssetDuration = UMOASUtilsManager.getRawTime(assetDuration);
+							
+							currentTime = readableCurrentTime;
+							
+							//gets the portroll ad start time
+							if(rawAssetDuration > 0){
+								if(!formattedPostRollStartTime){
+									//get postroll start time
+									var postrollTimeFlag = totalPostrollTime;
+									var rawPostRollDuration = UMOASUtilsManager.getRawTime(postrollTimeFlag);
+									var rawPostRollStartTime =  rawAssetDuration - rawPostRollDuration;
+									formattedPostRollStartTime = UMOASUtilsManager.formatTime(rawPostRollStartTime);	
+									formattedPostRollEndTime = UMOASUtilsManager.formatTime(rawPostRollStartTime + getPostRollEndTimeByDuration());
+								}
+							}
+							
+							//display current time and asset duration in UI
+							$('#currentTime').html(readableCurrentTime);
+							
+							//main ad management logic during asset playback
+							if(currentTime <= prerollTimeFlag){
+								
+							
+								//set ad type config variables
+								adType = "";	
+								adType = "preroll";
+								currentAdState = true;
+								hasPrerollStarted = true;
+								totalPrerollads = preRollAdManager.length;
+		
+								//ad slot configuration
+								UMOASAdSlotManager.AdSlotConfiguration(adBreakNodes, currentRawTime, adType, totalPrerollads, currentTime, totalPrerollTime, formattedMidRollStartTime, formattedMidRollEndTime, formattedPostRollStartTime, formattedPostRollEndTime, preRollAdManager, currentAdState, hasPrerollStarted);
+								
+								//handle ad overlay in the UI
+								handleAdOverlay(currentAdState);
+								
+								
+							}
+							else if(currentTime >= formattedMidRollStartTime && currentTime <= formattedMidRollEndTime){
+								
+								
+								//set ad type config variables
+								adType = "";
+								adType = "midroll";
+								currentAdState = true;
+								hasMidrollStarted = true;
+								totalMidrollads = midRollAdManager.length;
+		
+								//ad slot configuration
+								UMOASAdSlotManager.AdSlotConfiguration(adBreakNodes, currentRawTime, adType, totalMidrollads, currentTime, totalMidrollTime, formattedMidRollStartTime, formattedMidRollEndTime, formattedPostRollStartTime, formattedPostRollEndTime, midRollAdManager, currentAdState, hasMidrollStarted);
+								
+								//handle ad overlay in the UI
+								handleAdOverlay(currentAdState);
+								
+								
+							}
+							else if(currentTime >= formattedPostRollStartTime){
+								
+								
+								//clear and set ad type
+								adType = "";
+								adType = "postroll";
+								currentAdState = true;
+								hasPostrollStarted = true;
+								totalPostrollads = postRollAdManager.length;
+								
+								//ad slot configuration
+								UMOASAdSlotManager.AdSlotConfiguration(adBreakNodes, currentRawTime, adType, totalPostrollads, currentTime, totalPostrollTime, formattedMidRollStartTime, formattedMidRollEndTime, formattedPostRollStartTime, formattedPostRollEndTime, postRollAdManager, currentAdState, hasPostrollStarted);
+								
+								//we have to handle for the postroll state once current time and asset duration are =
+								if(currentTime == assetDuration){
+								
+									//end of asset hide ad overlay
+									currentAdState = false;
+									handleAdOverlay(currentAdState);
+									
+								}	
+								else{
+									
+									//handle ad overlay in the UI
+									handleAdOverlay(currentAdState);
+								}
+								
+							}
+					    	else{
+					    		
+					    		//turn off video click through during content playback 
+					    		$("#umvideo").off('click');
+					    		
+					    		//set current ad state to false
+					    		currentAdState = false;
+					    		handleAdOverlay(currentAdState);
+					    		
+					    	}
+			        break;
+			        case "complete":
+						var completeEvent = "Complete Event"; 
+						UMOASUtilsManager.writeToEventConsole(completeEvent  + event);
+					break;
+			        default:
+			            
+			        break;
+			    }
+			}
+			
+			$(document).ready(function () {
+				
+				//Production multiple ads in every slot
+				//http://oas.unicornmedia.com/now/ads/vmap/od/auto/b11dbc9b-9d90-4edb-b4ab-769e0049209b/0b4b1b29-f173-4f20-8cd6-5fe12a2e70b3/more Prod
+				//http://onceux.unicornmedia.com/now/ads/vmap/od/auto/b11dbc9b-9d90-4edb-b4ab-769e0049209b/2455340c-8dcd-412e-a917-c6fadfe268c7/3a41c6e4-93a3-4108-8995-64ffca7b9106/bigbuckbunny QA
+				
+				//M3U8
+				//http://oas.unicornmedia.com/now/ads/vmap/adaptive/m3u8/b11dbc9b-9d90-4edb-b4ab-769e0049209b/0b4b1b29-f173-4f20-8cd6-5fe12a2e70b3/more
+				
+				var OASServiceURL = "http://oas.unicornmedia.com/now/ads/vmap/adaptive/m3u8/b11dbc9b-9d90-4edb-b4ab-769e0049209b/0b4b1b29-f173-4f20-8cd6-5fe12a2e70b3/more?umtp=0"; 
+				
+								
+				//handles getting the VMAP response via ajax
+				init = function() {
+					
+					//load OnceUX URL in UI for display only
+	                $("#currentOASURL").html(OASServiceURL);
+	                
+	                //make intial ajax call to OnceUX URL to get VMAP response
+	                $.ajax({
+                        type: 'GET',
+                        url: OASServiceURL,
+                        dataType: 'html',
+                        success: function (data) {
+                            $("#vmapResponse").text(data);
+                            
+                            //display VMAP response in the UI
+                            var xmlData = $("#vmapResponse").val();
+                       		
+                       		//set namespace vars for parsing VMAP response
+                           	var vmap_namespace = '*';
+							var vmapVast_namespace = 'vmap:VASTData';
+							
+							//use the DOM parseer to parse the response data object
+							var parser = new DOMParser(); 
+							var xml = parser.parseFromString(data, "text/xml");    
+							
+							//get the content Once URL so we can start video playback
+							UMOASSDK.GetContentOnceURL(xml, "uo:unicornOnce");
+							
+							//check to make sure we have asset url and banner ads
+							if(onceURL && adBreakCompanionBanners){
+									
+									
+									//display asset Once URL in UI
+									var currentOnceURL = onceURL[0].OnceURL;
+									$("#currentOnceURL").html(currentOnceURL);
+									
+									//get ad slot config options
+									UMOASAdManager.GetTotalAdSlotProperties(adBreakNodes);
+	
+									
+									//create video player and setup player events 
+									$('#flashContent').flash(
+							        { 
+							        	  id: 'StrobeMediaPlayback',
+							        	  name: 'StrobeMediaPlayback',
+								          src: 'StrobeMediaPlayback.swf',
+								          width: 520,
+								          height: 290,
+								          allowFullScreen: 'true',
+								          wmode: 'opaque',
+								          flashvars: { src: currentOnceURL, javascriptCallbackFunction: 'onJSBridge',  plugin_M3U8Plugin: 'M3U8Plugin.swf'}
+								         
+								     });
+								     
+									//check make sure we have preroll ad
+									if(totalPrerollTime){
+										
+										//configures ad slot times and displays ad slot info in UI
+										adCheck();
+									}
+									
+							}
+							else{
+								
+								//display message if no asset is available
+								$("#umvideo").html("No video asset available for playback");
+							}
+                        }
+                    });	
+				}
+		
+				//gets ad configuration info and writes to the console
+				adCheck = function(){
+					
+					prerollTimeFlag = totalPrerollTime;
+                    var rawPrerollTime = UMOASUtilsManager.getRawTime(prerollTimeFlag);
+                    
+					
+					if(midRollAdManager.length > 0){
+						midrollTimeFlag = totalMidrollTime;
+						var rawMidrollTime = UMOASUtilsManager.getRawTime(midrollTimeFlag);
+						
+						//Get midroll start time 
+						var midRollStart = midRollAdManager[0].timeOffset;
+						var rawMidRoll = UMOASUtilsManager.getRawTime(midRollStart);
+						var rawMidRollStartTime = rawPrerollTime + rawMidRoll;
+						formattedMidRollStartTime = UMOASUtilsManager.formatTime(rawMidRollStartTime);
+						
+						//Get midroll end time
+						formattedMidRollEndTime = UMOASUtilsManager.formatTime(rawMidRollStartTime + getMidRollEndTimeByDuration());
+							
+					}
+					
+					//set the toatls ad slots per ad slot pre/mid/post
+					var preRollTotal = preRollAdManager.length;
+					var midRollTotal = midRollAdManager.length;
+					var postRollTotal = postRollAdManager.length;
+					
+					//loop over the adBreakNodes array to display ad slot properties per ad slot
+					for(var j=0; j<adBreakNodes.length; j++){
+						
+						var data = new Object(adBreakNodes[j]);
+						
+						if(adBreakNodes[j].timeOffset == "start"){
+							$('#prerollDuration').html(totalPrerollTime);
+							$('#prerollAdTotal').html(preRollTotal);
+							$("#preRollAds").append(UMOASUtilsManager.writeToObjectsConsole(data));
+							
+						}
+						else if(adBreakNodes[j].timeOffset == "end"){
+							$('#postrollDuration').html(totalPostrollTime);
+							$('#postrollAdTotal').html(postRollTotal);
+							$("#postRollAds").append(UMOASUtilsManager.writeToObjectsConsole(data));
+						}
+						else{
+							$('#midrollDuration').html(totalMidrollTime);
+							$('#midrollAdTotal').html(midRollTotal);
+							$("#midRollAds").append(UMOASUtilsManager.writeToObjectsConsole(data));
+						}   
+	                }
+	                
+	                //get the total adslot time
+	                getTotalAdSlotTime();
+				}
+				
+			
+				//Utility methods===================================================================================================
+				
+				//gets the total time per ad slot
+				getTotalAdSlotTime = function(){
+					toatlPrerollAdLength = 0;
+					for (var i = 0; i < preRollAdManager.length; i++)
+					{
+						var number = parseInt(preRollAdManager[i].duration, 10);
+					    toatlPrerollAdLength += number;
+					}
+				}
+				
+				getMidRollEndTimeByDuration = function(){
+					
+					for (var j = 0; j < adBreakNodes.length; j++){
+					
+						if(adBreakNodes[j].timeOffset != "end" && adBreakNodes[j].timeOffset != "start"){
+							var adDuration = adBreakNodes[j].adDuration;
+							var rawTime = UMOASUtilsManager.getRawTime(adDuration);
+							var rawEndTime;
+							
+							if(rawEndTime){
+								rawEndTime = rawEndTime + rawTime;
+							}
+							else{
+								rawEndTime = rawTime;
+							}	
+						}
+					}
+					
+					return rawEndTime;
+				}
+				
+				getPostRollEndTimeByDuration = function(){
+					
+					for (var j = 0; j < adBreakNodes.length; j++){
+					
+						if(adBreakNodes[j].timeOffset == "end"){
+							var adDuration = adBreakNodes[j].adDuration;
+							var rawTime = UMOASUtilsManager.getRawTime(adDuration);
+							var rawEndTime;
+							
+							if(rawEndTime){
+								rawEndTime = rawEndTime + rawTime;
+							}
+							else{
+								rawEndTime = rawTime;
+							}
+						}
+					}
+					return rawEndTime;
+				}
+			
+				//handles ui display for ad time length
+				handleAdOverlay = function(adState){
+					
+					if(adState == true){
+						$("#adOverlay").css({ visibility: "visible" });
+                 		$('#adOverlay').css({ display: "block" });
+                 		$('#adOverlay').css({ "z-index": 100 });
+                 		$('#adOverlay').css({ width: 520 });
+                 		$('#adOverlay').css({ height: "30px" });
+                 		$('#adOverlay').css({ backgroundColor: "#333" });
+                 		$('#adOverlay').css({ position: "relative" });
+                 		$('#adOverlay').css({ bottom: "35px" });
+                 		$('#adOverlay').css({ color: "#909090" });
+					}
+					else{
+						$("#adOverlay").css({ visibility: "hidden" });
+                        $('#adOverlay').css({ display: "none" });
+					}
+				}
+				
+				//handles firing ad start event
+				adStartEventHandler = function(currentAd){
+					
+					var adStartEvent = "Ad with breakId: " + currentAd + " Start Event"; 
+					UMOASUtilsManager.writeToEventConsole(adStartEvent);
+				}
+				
+				//handles firing ad complete event
+				adEndEventHandler = function(currentAd){
+					var adEndEvent = "Ad with breakId: " + currentAd + " Complete Event"; 
+					UMOASUtilsManager.writeToEventConsole(adEndEvent);
+				}
+				
+				//handles restting the ui and loading the new OAS URL
+				OASURLReloadEventHandler = function(){
+					
+					//clear all fields of current debug/event info
+					$("#currentTime").text("");
+					$("#totalTime").text("");
+					$("#currentOnceURL").text("");
+					$("#prerollDuration").text("");
+					$("#prerollAdTotal").text("");
+					$("#preRollAds").val("");
+					$("#midrollDuration").val("");
+					$("#midrollAdTotal").val("");
+					$("#midRollAds").val("");
+					$("#postrollDuration").val("");
+					$("#postrollAdTotal").val("");
+					$("#postRollAds").val("");
+					$("#eventsBeacons").val("");
+					$("#vmapResponse").val("");
+					
+					//clear all dataproviders 
+					UMOASSDK.clearDataProviders();
+					UMOASAdManager.clearDataProviders();
+					
+					OASServiceURL = "";
+					
+					//set the new oas url val to our OASServiceURL var
+					OASServiceURL = $("#loadOASURL").val();
+					
+					//call init() to reload with new oas url
+					init();	
+					
+					//check ad congif timer
+					//stopAdConfigTimer();
+				}
+				/*
+				//click event handler for reloading oas url
+				$('#btn_loadOASURL').click(function(){
+					var urlCheck = $("#loadOASURL").val();
+				   if(urlCheck){
+				   	OASURLReloadEventHandler();
+				   }
+				   else{
+				   	 alert("You need a valid OnceUX URL");
+				   }
+				    
+				});
+				*/
+				//fire the init on document ready to load up and parse the OAS URL
+				init();
+            });
+            
+        
+		</script>
+	</body>
+</html>
